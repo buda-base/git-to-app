@@ -189,6 +189,8 @@ def inspectPerson(pFname):
     names = getTibNames(BDR[likelypLname], BDR.personName, model, INDEXES["persons"])
     return {"name": names}
 
+MAXKEYSPERINDEX = 20000
+
 def main(mwrid=None):
     i = 0
     os.makedirs("output/persons/bdr/", exist_ok=True)
@@ -206,7 +208,7 @@ def main(mwrid=None):
             with open('output/workparts/bdr/'+likelyLname+'.json', 'w') as f:
                 json.dump(partsinfo, f, ensure_ascii=False)
         i += 1
-        return
+        break
     l = sorted(glob.glob(GITPATH+'/persons/**/P*.trig'))
     for fname in VERBMODE == "-v" and tqdm(l) or l:
         pinfo = inspectPerson(fname)
@@ -214,5 +216,31 @@ def main(mwrid=None):
         with open('output/persons/bdr/'+likelyLname+'.json', 'w') as f:
             json.dump(pinfo, f, ensure_ascii=False)
         i += 1
+        break
+    for idxname, idx in INDEXES.items():
+        fileCnt = 0
+        towrite[name] = values
+        fpath = OUTDIR+idxname+"-"+fileCnt+".json"
+        fp = open(fpath, 'w')
+        keyCnt = 0
+        for name, values in idx.items():
+            if keyCnt == 0:
+                fp.write('{')
+            else:
+                fp.write(',')
+            fp.write('"'+name+'":'json.dumps(values))
+            keyCnt += 1;
+            if keyCnt > maxkeysPerIndex:
+                fileCnt += 1
+                fp.write('}')
+                fp.flush()
+                fp.close()
+                fpath = OUTDIR+idxname+"-"+fileCnt+".json"
+                fp = open(fpath, 'w')
+                keyCnt = 0
+        if keyCnt != 0:
+            fp.write('}')
+            fp.flush()
+            fp.close()
 
 main()

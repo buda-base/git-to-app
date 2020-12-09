@@ -1,0 +1,22 @@
+select distinct ?i where {
+  {
+  	?i a bdo:Instance ;
+  	   bdo:isRoot true .
+  	FILTER (NOT EXISTS {?i tmp:thumbnailIIIFService ?th })
+  } union {
+  	?i a bdo:Instance ;
+  	   bdo:instanceHasReproduction ?ii .
+  	?iadm adm:adminAbout ?ii .
+  	?iadm adm:restrictedInChina true .
+  } union {
+  	?i a bdo:Instance ;
+  	   bdo:instanceHasReproduction ?ii .
+  	?iadm adm:adminAbout ?ii .
+  	?iadm adm:access ?a .
+  	FILTER (?a != bda:AccessOpen)
+  } union {
+  	?i bdo:instanceOf ?w ;
+  	bdo:isRoot true .
+  	FILTER (NOT EXISTS{?w bdo:language bdr:LangBo })
+  }
+}

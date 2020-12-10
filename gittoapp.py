@@ -76,7 +76,7 @@ def getTibNames(s, p, model, index):
         for _, _, tl in model.triples( (t, RDFS.label, None) ):
             st = None
             if tl.language == "bo-x-ewts":
-                st = pyewts.toUnicode(str(tl))
+                st = converter.toUnicode(str(tl))
             elif tl.language == "bo":
                 st = str(tl)
             else:
@@ -86,22 +86,23 @@ def getTibNames(s, p, model, index):
             labels.append(st)
     if index is None:
         return labels
+    _, _, sLname = NSM.compute_qname_strict(s)
     for l in labels:
         toindex = l
-        for s in ["་བཞུགས་སོ", "༼", "་ཞེས་བྱ་བ", "་ཅེས་བྱ་བ"]:
-            lastparidx = toindex.rfind(s)
+        for s2 in ["་བཞུགས་སོ", "༼", "་ཞེས་བྱ་བ", "་ཅེས་བྱ་བ"]:
+            lastparidx = toindex.rfind(s2)
             if lastparidx != -1:
                 toindex = toindex[:lastparidx]
         toindex = toindex.strip("།༔་")
         if toindex not in index:
             index[toindex] = []
-        _, _, sLname = NSM.compute_qname_strict(s)
         index[toindex].append(sLname)
     return labels
 
 def getParts(mw, model, parts):
     for _, _, wp in model.triples( (mw, BDO.hasPart, None) ):
         wpt = None
+        _, _, wpLname = NSM.compute_qname_strict(wp)
         for _, _, wptO in model.triples( (wp, BDO.partType, None) ):
             wpt = wptO
         if wpt == BDR.PartTypeTableOfContent or wpt == BDR.PartTypeChapter:
@@ -110,13 +111,14 @@ def getParts(mw, model, parts):
         for _, _, wa in model.triples( (wp, BDO.instanceOf, None) ):
             _, _, waLname = NSM.compute_qname_strict(wa)
             wainfo = getWA(waLname)
-        idx = INDEXES["workparts"] if wpt != BDR.PartTypeVolume else None
+        idx = INDEXES["workparts"] if wpt != BDR.PartTypeText else None
         titles = getTibNames(wp, BDR.hasTitle, model, idx)
+        parts.append([wp]+titles)
         getParts(wp, model, parts)
 
 def inspectMW(iFilePath):
     likelyiLname = Path(iFilePath).stem
-    if likelyiLname in UNWANTED:
+    if "FEMC" in likelyiLname or "FPL" in likelyiLname or "EAP" in likelyiLname or "TLM" in likelyiLname or likelyiLname in UNWANTED or "CUDL" in likelyiLname:
         return
     model = ConjunctiveGraph()
     model.parse(str(iFilePath), format="trig")
@@ -132,12 +134,12 @@ def inspectMW(iFilePath):
     for _, _, pnO in model.triples( (mw, BDO.publisherName, None) ):
         pn = str(pnO)
         if pnO.language == "bo-x-ewts":
-            pn = str(pyewts.toUnicode(pnO))
+            pn = str(converter.toUnicode(pnO))
         mwinfo["pn"] = pn
     for _, _, plO in model.triples( (mw, BDO.publisherLocation, None) ):
         pl = str(plO)
         if plO.language == "bo-x-ewts":
-            pl = str(pyewts.toUnicode(plO))
+            pl = str(converter.toUnicode(plO))
         mwinfo["pl"] = pl
     titles = getTibNames(mw, BDR.hasTitle, model, INDEXES["works"])
     if len(titles) != 0:
@@ -163,11 +165,14 @@ def getWA(waLname):
     md5 = hashlib.md5(str.encode(waLname))
     two = md5.hexdigest()[:2]
     fpath = GITPATH+"works/"+two+"/"+waLname+".trig"
+    authors = set()
     model = ConjunctiveGraph()
-    model.parse(str(fpath), format="trig")
-    authors = ()
+    try:
+        model.parse(str(fpath), format="trig")
+    except:
+        print("missing work file %s" % fpath)
+        return authors
     for aac, _, p in model.triples( (None, BDO.agent, None) ):
-        iinstanceRes = s
         for _, _, r in model.triples( (aac, BDO.role, None) ):
             if r == BDR.R0ER0019 or BDR.R0ER0025:
                 _, _, pLname = NSM.compute_qname_strict(p)
@@ -182,10 +187,10 @@ def getWA(waLname):
 
 def inspectPerson(pFname):
     likelypLname = Path(pFname).stem
-    if not likelypLname in SEENPERSONS:
+    if not likelypLname in SEENPERSONS or 'TLM' in pFname:
         return
     model = ConjunctiveGraph()
-    model.parse(str(fpath), format="trig")
+    model.parse(pFname, format="trig")
     names = getTibNames(BDR[likelypLname], BDR.personName, model, INDEXES["persons"])
     return {"name": names}
 
@@ -199,6 +204,8 @@ def main(mwrid=None):
     l = sorted(glob.glob(GITPATH+'/instances/**/MW*.trig'))
     for fname in VERBMODE == "-v" and tqdm(l) or l:
         infol = inspectMW(fname)
+        if infol is None:
+            continue
         likelyLname = Path(fname).stem
         mwinfo = infol[0]
         partsinfo = infol[1]
@@ -208,7 +215,7 @@ def main(mwrid=None):
             with open('output/workparts/bdr/'+likelyLname+'.json', 'w') as f:
                 json.dump(partsinfo, f, ensure_ascii=False)
         i += 1
-        break
+        #break
     l = sorted(glob.glob(GITPATH+'/persons/**/P*.trig'))
     for fname in VERBMODE == "-v" and tqdm(l) or l:
         pinfo = inspectPerson(fname)
@@ -216,11 +223,11 @@ def main(mwrid=None):
         with open('output/persons/bdr/'+likelyLname+'.json', 'w') as f:
             json.dump(pinfo, f, ensure_ascii=False)
         i += 1
-        break
+        #break
     for idxname, idx in INDEXES.items():
         fileCnt = 0
-        towrite[name] = values
-        fpath = OUTDIR+idxname+"-"+fileCnt+".json"
+        #towrite[name] = values
+        fpath = OUTDIR+idxname+"-"+str(fileCnt)+".json"
         fp = open(fpath, 'w')
         keyCnt = 0
         for name, values in idx.items():
@@ -228,9 +235,9 @@ def main(mwrid=None):
                 fp.write('{')
             else:
                 fp.write(',')
-            fp.write('"'+name+'":'json.dumps(values))
+            fp.write(json.dumps(name, ensure_ascii=False)+':'+json.dumps(values, ensure_ascii=False))
             keyCnt += 1;
-            if keyCnt > maxkeysPerIndex:
+            if keyCnt > MAXKEYSPERINDEX:
                 fileCnt += 1
                 fp.write('}')
                 fp.flush()

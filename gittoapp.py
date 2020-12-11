@@ -107,13 +107,10 @@ def getParts(mw, model, parts):
             wpt = wptO
         if wpt == BDR.PartTypeTableOfContent or wpt == BDR.PartTypeChapter:
             continue
-        wainfo = None
-        for _, _, wa in model.triples( (wp, BDO.instanceOf, None) ):
-            _, _, waLname = NSM.compute_qname_strict(wa)
-            wainfo = getWA(waLname)
-        idx = INDEXES["workparts"] if wpt != BDR.PartTypeText else None
+        idx = INDEXES["workparts"] if wpt == BDR.PartTypeText else None
         titles = getTibNames(wp, BDR.hasTitle, model, idx)
-        parts.append([wp]+titles)
+        _, _, wpLname = NSM.compute_qname_strict(wp)
+        parts.append([wpLname]+titles)
         getParts(wp, model, parts)
 
 def inspectMW(iFilePath):
@@ -203,10 +200,10 @@ def main(mwrid=None):
     os.makedirs("output/workparts/bdr/", exist_ok=True)
     l = sorted(glob.glob(GITPATH+'/instances/**/MW*.trig'))
     for fname in VERBMODE == "-v" and tqdm(l) or l:
+        likelyLname = Path(fname).stem
         infol = inspectMW(fname)
         if infol is None:
             continue
-        likelyLname = Path(fname).stem
         mwinfo = infol[0]
         partsinfo = infol[1]
         with open('output/works/bdr/'+likelyLname+'.json', 'w') as f:
@@ -215,10 +212,27 @@ def main(mwrid=None):
             with open('output/workparts/bdr/'+likelyLname+'.json', 'w') as f:
                 json.dump(partsinfo, f, ensure_ascii=False)
         i += 1
-        #break
+        #if i > 300:
+        #    break
+    l = sorted(glob.glob(GITPATH+'/works/**/MW*.trig'))
+    for fname in VERBMODE == "-v" and tqdm(l) or l:
+        likelyLname = Path(fname).stem
+        infol = inspectMW(fname)
+        if infol is None:
+            continue
+        mwinfo = infol[0]
+        partsinfo = infol[1]
+        with open('output/works/bdr/'+likelyLname+'.json', 'w') as f:
+            json.dump(mwinfo, f, ensure_ascii=False)
+        if partsinfo:
+            with open('output/workparts/bdr/'+likelyLname+'.json', 'w') as f:
+                json.dump(partsinfo, f, ensure_ascii=False)
+        i += 1
     l = sorted(glob.glob(GITPATH+'/persons/**/P*.trig'))
     for fname in VERBMODE == "-v" and tqdm(l) or l:
         pinfo = inspectPerson(fname)
+        if pinfo is None or  len(pinfo) == 0:
+            continue
         likelyLname = Path(fname).stem
         with open('output/persons/bdr/'+likelyLname+'.json', 'w') as f:
             json.dump(pinfo, f, ensure_ascii=False)
@@ -242,7 +256,7 @@ def main(mwrid=None):
                 fp.write('}')
                 fp.flush()
                 fp.close()
-                fpath = OUTDIR+idxname+"-"+fileCnt+".json"
+                fpath = OUTDIR+idxname+"-"+str(fileCnt)+".json"
                 fp = open(fpath, 'w')
                 keyCnt = 0
         if keyCnt != 0:

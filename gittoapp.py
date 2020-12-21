@@ -99,7 +99,16 @@ def getTibNames(s, p, model, index):
         index[toindex].append(sLname)
     return labels
 
-def getParts(mw, model, parts):
+# n : [
+#   {
+#     "id": "W123",
+#     "t": ["title1", "title2"],
+#     "n": []
+#   },
+#   ...
+# ]
+def getParts(mw, model):
+    res = []
     for _, _, wp in model.triples( (mw, BDO.hasPart, None) ):
         wpt = None
         _, _, wpLname = NSM.compute_qname_strict(wp)
@@ -110,8 +119,12 @@ def getParts(mw, model, parts):
         idx = INDEXES["workparts"] if wpt == BDR.PartTypeText else None
         titles = getTibNames(wp, BDR.hasTitle, model, idx)
         _, _, wpLname = NSM.compute_qname_strict(wp)
-        parts.append([wpLname]+titles)
-        getParts(wp, model, parts)
+        node = {"id": wpLname, "t": titles}
+        res.append(node)
+        subParts = getParts(wp, model)
+        if subParts is not None and len(subParts) > 0:
+            node["n"] = subParts
+    return res
 
 def inspectMW(iFilePath):
     likelyiLname = Path(iFilePath).stem
@@ -146,8 +159,7 @@ def inspectMW(iFilePath):
         wainfo = getWA(waLname)
         if wainfo and len(wainfo) != 0:
             mwinfo["creator"] = list(wainfo)
-    parts = []
-    getParts(mw, model, parts)
+    parts = getParts(mw, model)
     if len(parts) != 0:
         mwinfo["hasParts"] = True
     else:
@@ -195,9 +207,9 @@ MAXKEYSPERINDEX = 20000
 
 def main(mwrid=None):
     i = 0
-    os.makedirs("output/persons/bdr/", exist_ok=True)
-    os.makedirs("output/works/bdr/", exist_ok=True)
-    os.makedirs("output/workparts/bdr/", exist_ok=True)
+    os.makedirs("output/persons/", exist_ok=True)
+    os.makedirs("output/works/", exist_ok=True)
+    os.makedirs("output/workparts/", exist_ok=True)
     l = sorted(glob.glob(GITPATH+'/instances/**/MW*.trig'))
     for fname in VERBMODE == "-v" and tqdm(l) or l:
         likelyLname = Path(fname).stem
@@ -206,10 +218,10 @@ def main(mwrid=None):
             continue
         mwinfo = infol[0]
         partsinfo = infol[1]
-        with open('output/works/bdr/'+likelyLname+'.json', 'w') as f:
+        with open('output/works/'+likelyLname+'.json', 'w') as f:
             json.dump(mwinfo, f, ensure_ascii=False)
         if partsinfo:
-            with open('output/workparts/bdr/'+likelyLname+'.json', 'w') as f:
+            with open('output/workparts/'+likelyLname+'.json', 'w') as f:
                 json.dump(partsinfo, f, ensure_ascii=False)
         i += 1
         #if i > 300:
@@ -222,10 +234,10 @@ def main(mwrid=None):
             continue
         mwinfo = infol[0]
         partsinfo = infol[1]
-        with open('output/works/bdr/'+likelyLname+'.json', 'w') as f:
+        with open('output/works/'+likelyLname+'.json', 'w') as f:
             json.dump(mwinfo, f, ensure_ascii=False)
         if partsinfo:
-            with open('output/workparts/bdr/'+likelyLname+'.json', 'w') as f:
+            with open('output/workparts/'+likelyLname+'.json', 'w') as f:
                 json.dump(partsinfo, f, ensure_ascii=False)
         i += 1
     l = sorted(glob.glob(GITPATH+'/persons/**/P*.trig'))
@@ -234,7 +246,7 @@ def main(mwrid=None):
         if pinfo is None or  len(pinfo) == 0:
             continue
         likelyLname = Path(fname).stem
-        with open('output/persons/bdr/'+likelyLname+'.json', 'w') as f:
+        with open('output/persons/'+likelyLname+'.json', 'w') as f:
             json.dump(pinfo, f, ensure_ascii=False)
         i += 1
         #break

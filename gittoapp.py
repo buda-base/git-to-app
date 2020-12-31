@@ -23,10 +23,15 @@ if len(sys.argv) > 1:
     GITPATH = sys.argv[1]
 
 OUTDIR = "output/"
-
-VERBMODE = "-v"
 if len(sys.argv) > 2:
-    VERBMODE = sys.argv[2]
+    OUTDIR = sys.argv[2]
+
+VERBMODE = ""
+if len(sys.argv) > 3:
+    if sys.argv[3] == "-v":
+        VERBMODE = "-v"
+
+print("converting git repos in %s, output in %s, verb = %s" % (GITPATH, OUTDIR, VERBMODE))
 
 BDR = Namespace("http://purl.bdrc.io/resource/")
 BDO = Namespace("http://purl.bdrc.io/ontology/core/")

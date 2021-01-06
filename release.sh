@@ -10,10 +10,10 @@ JSON="{
   \"mirrorId\":\"us-east-1\",
   \"siteUrl\":\"https://www.bdrc.io\",
   \"libraryUrl\":\"https://library.bdrc.io\",
-  \"viewerUrlPrefix\":\"http://library.bdrc.io/view/\",
+  \"viewerUrlPrefix\":\"https://library.bdrc.io/scripts/embed-iframe.html\",
   \"releaseSerialNumber\": XXX,
   \"releaseDate\":\"$d2\",
-  \"releaseZipUrl":"http://library.bdrc.io/mobile-data/$d.zip\",
+  \"releaseZipUrl":"http://staticfiles.bdrc.io/BDRCLibApp/1.2/$d.zip\",
   \"releaseDescription\":[
     {
       \"value\":\"$den\",
@@ -38,10 +38,10 @@ cd output/
 zip -q -r ../releases/$d.zip *
 cd ../
 
-aws s3 cp releases/$d.zip s3://data.tbrc.org/app-data/$d.zip
+aws s3 --profile appdata cp releases/$d.zip s3://data.tbrc.org/app-data/$d.zip
 
-echo "posible json saved as output.json"
-echo $JSON > output.json
+echo "posible json saved as $d.json"
+echo $JSON > $d.json
 
 echo "complete and then upload to s3:"
-echo "aws s3 cp output.json s3://data.tbrc.org/app-data/$d.json"
+echo "aws s3 --profile appdata cp $d.json s3://data.tbrc.org/app-data/$d.json"

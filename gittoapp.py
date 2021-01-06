@@ -4,6 +4,7 @@ import os
 import json
 from pathlib import Path
 import glob
+import rdflib
 from rdflib import URIRef, Literal, BNode, Graph, ConjunctiveGraph
 from rdflib.namespace import RDF, RDFS, SKOS, OWL, Namespace, NamespaceManager, XSD
 from tqdm import tqdm
@@ -17,7 +18,9 @@ import csv
 
 converter = pyewts.pyewts()
 
-#GITPATH = "/home/eroux/BUDA/softs/xmltoldmigration/tbrc-ttl/iinstances"
+# see https://github.com/RDFLib/rdflib/issues/806
+x = rdflib.term._toPythonMapping.pop(rdflib.XSD['gYear'])
+
 GITPATH = "../xmltoldmigration/tbrc-ttl/"
 if len(sys.argv) > 1:
     GITPATH = sys.argv[1]
@@ -54,10 +57,17 @@ INDEXES = {
     "workparts": {}
 }
 
+PTLNAMETOAPP = {
+    "PrintMethod_Relief_WoodBlock": "x",
+    "PrintMethod_Manuscript": "m",
+    "PrintMethod_Modern": "mo",
+    "PrintMethod_Xerography": "l"
+}
+
 # TODO: only add author persons
 
 UNWANTED = {}
-SEENPERSONS = {}
+CREATOROF = {}
 
 with open('unwantedInstances.txt', newline='') as csvfile:
     reader = csv.reader(csvfile, delimiter=',')
@@ -135,6 +145,8 @@ def inspectMW(iFilePath):
     likelyiLname = Path(iFilePath).stem
     if "FEMC" in likelyiLname or "FPL" in likelyiLname or "EAP" in likelyiLname or "TLM" in likelyiLname or likelyiLname in UNWANTED or "CUDL" in likelyiLname:
         return
+    #if "W12827" not in iFilePath:
+    #    return
     model = ConjunctiveGraph()
     model.parse(str(iFilePath), format="trig")
     # if status != released, pass
@@ -145,7 +157,7 @@ def inspectMW(iFilePath):
     wainfo = None
     for _, _, wa in model.triples( (mw, BDO.instanceOf, None) ):
         _, _, waLname = NSM.compute_qname_strict(wa)
-        wainfo = getWA(waLname)
+        wainfo = getWA(waLname, likelyiLname)
     for _, _, pnO in model.triples( (mw, BDO.publisherName, None) ):
         pn = str(pnO)
         if pnO.language == "bo-x-ewts":
@@ -156,12 +168,30 @@ def inspectMW(iFilePath):
         if plO.language == "bo-x-ewts":
             pl = str(converter.toUnicode(plO))
         mwinfo["pl"] = pl
+    for _, _, ptO in model.triples( (mw, BDO.printMethod, None) ):
+        _, _, ptLname = NSM.compute_qname_strict(ptO)
+        if ptLname not in PTLNAMETOAPP:
+            print("error: %s not handled" % ptLname)
+            continue
+        ptForApp = PTLNAMETOAPP[ptLname]
+        mwinfo["pt"] = ptForApp
     titles = getTibNames(mw, BDR.hasTitle, model, INDEXES["works"])
     if len(titles) != 0:
         mwinfo["title"] = titles
+    pdate = ""
+    for evt, _, _ in model.triples( (None, RDF.type, BDO.PublishedEvent) ):
+        for _, p, o in model.triples( (evt, None, None) ):
+            if p == BDO.onYear:
+                pdate = str(o)
+            elif p == BDO.notBefore:
+                pdate = str(o)+"-"+pdate
+            elif p == BDO.notAfter:
+                pdate = pdate+str(o)
+    if pdate:
+        mwinfo["pd"] = pdate
     for _, _, wa in model.triples( (mw, BDO.instanceOf, None) ):
         _, _, waLname = NSM.compute_qname_strict(wa)
-        wainfo = getWA(waLname)
+        wainfo = getWA(waLname, likelyiLname)
         if wainfo and len(wainfo) != 0:
             mwinfo["creator"] = list(wainfo)
     parts = getParts(mw, model)
@@ -173,7 +203,7 @@ def inspectMW(iFilePath):
 
 CACHEDWINFO = {}
 
-def getWA(waLname):
+def getWA(waLname, mwLname):
     if waLname in CACHEDWINFO:
         return CACHEDWINFO[waLname]
     md5 = hashlib.md5(str.encode(waLname))
@@ -191,7 +221,9 @@ def getWA(waLname):
             if r == BDR.R0ER0019 or BDR.R0ER0025:
                 _, _, pLname = NSM.compute_qname_strict(p)
                 authors.add(pLname)
-                SEENPERSONS[pLname] = True
+                if pLname not in CREATOROF:
+                    CREATOROF[pLname] = []
+                CREATOROF[pLname].append(mwLname)
     nbi = 0
     for _, _, i in model.triples( (None, BDO.workHasInstance, None) ):
         nbi += 1
@@ -201,12 +233,35 @@ def getWA(waLname):
 
 def inspectPerson(pFname):
     likelypLname = Path(pFname).stem
-    if not likelypLname in SEENPERSONS or 'TLM' in pFname:
+    if not likelypLname in CREATOROF or 'TLM' in pFname:
         return
     model = ConjunctiveGraph()
     model.parse(pFname, format="trig")
     names = getTibNames(BDR[likelypLname], BDR.personName, model, INDEXES["persons"])
-    return {"name": names}
+    bdate = ""
+    ddate = ""
+    for evt, _, _ in model.triples( (None, RDF.type, BDO.PersonBirth) ):
+        for _, p, o in model.triples( (evt, None, None) ):
+            if p == BDO.onYear:
+                bdate = str(o)
+            elif p == BDO.notBefore:
+                bdate = str(o)+"-"+bdate
+            elif p == BDO.notAfter:
+                bdate = bdate+str(o)
+    for evt, _, _ in model.triples( (None, RDF.type, BDO.PersonDeath) ):
+        for _, p, o in model.triples( (evt, None, None) ):
+            if p == BDO.onYear:
+                ddate = str(o)
+            elif p == BDO.notBefore:
+                ddate = str(o)+"-"+ddate
+            elif p == BDO.notAfter:
+                ddate = ddate+str(o)
+    res = {"name": names, "co": CREATOROF[likelypLname]}
+    if bdate:
+        res["b"] = bdate
+    if ddate:
+        res["d"] = ddate
+    return res
 
 MAXKEYSPERINDEX = 20000
 

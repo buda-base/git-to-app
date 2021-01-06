@@ -15,6 +15,7 @@ import time
 import re
 import pyewts
 import csv
+import hashlib
 
 converter = pyewts.pyewts()
 
@@ -265,6 +266,36 @@ def inspectPerson(pFname):
 
 MAXKEYSPERINDEX = 20000
 
+NBDIGITS = 2
+
+FILES = {
+    "works": {},
+    "persons": {},
+    "workparts": {}
+}
+
+def getdigits(lname):
+    md5 = hashlib.md5(str.encode(lname))
+    return md5.hexdigest()[:NBDIGITS]
+
+def saveData(t, lname, data):
+    if NBDIGITS == 0:
+        with open('output/'+t+'/'+lname+'.json', 'w') as f:
+                json.dump(data, f, ensure_ascii=False)
+    digits = getdigits(lname)
+    if digits not in FILES[t]:
+        FILES[t][digits] = {}
+    bucket = FILES[t][digits]
+    bucket[lname] = data
+
+def writeData():
+    if NBDIGITS == 0:
+        return
+    for t in ["persons", "works", "workparts"]:
+        for bucket in FILES[t]:
+            with open('output/'+t+'/'+bucket+'.json', 'w') as f:
+                json.dump(FILES[t][bucket], f, ensure_ascii=False)
+
 def main(mwrid=None):
     i = 0
     os.makedirs("output/persons/", exist_ok=True)
@@ -278,11 +309,9 @@ def main(mwrid=None):
             continue
         mwinfo = infol[0]
         partsinfo = infol[1]
-        with open('output/works/'+likelyLname+'.json', 'w') as f:
-            json.dump(mwinfo, f, ensure_ascii=False)
+        saveData("works", likelyLname, mwinfo)
         if partsinfo:
-            with open('output/workparts/'+likelyLname+'.json', 'w') as f:
-                json.dump(partsinfo, f, ensure_ascii=False)
+            saveData("workparts", likelyLname, partsinfo)
         i += 1
         #if i > 300:
         #    break
@@ -294,11 +323,9 @@ def main(mwrid=None):
             continue
         mwinfo = infol[0]
         partsinfo = infol[1]
-        with open('output/works/'+likelyLname+'.json', 'w') as f:
-            json.dump(mwinfo, f, ensure_ascii=False)
+        saveData("works", likelyLname, mwinfo)
         if partsinfo:
-            with open('output/workparts/'+likelyLname+'.json', 'w') as f:
-                json.dump(partsinfo, f, ensure_ascii=False)
+            saveData("workparts", likelyLname, partsinfo)
         i += 1
     l = sorted(glob.glob(GITPATH+'/persons/**/P*.trig'))
     for fname in VERBMODE == "-v" and tqdm(l) or l:
@@ -306,10 +333,10 @@ def main(mwrid=None):
         if pinfo is None or  len(pinfo) == 0:
             continue
         likelyLname = Path(fname).stem
-        with open('output/persons/'+likelyLname+'.json', 'w') as f:
-            json.dump(pinfo, f, ensure_ascii=False)
+        saveData("persons", likelyLname, pinfo)
         i += 1
         #break
+    writeData()
     for idxname, idx in INDEXES.items():
         fileCnt = 0
         #towrite[name] = values

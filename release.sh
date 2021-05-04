@@ -34,8 +34,7 @@ python3 gittoapp.py ../bdrc-git-repos/
 
 mkdir -p releases
 
-cd output/
-zip -q -r ../releases/$d.zip *
+zip -q -r ../releases/$d.zip BDRCLIB
 cd ../
 
 aws s3 --profile appdata cp releases/$d.zip s3://data.tbrc.org/app-data/$d.zip

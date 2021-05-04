@@ -22,11 +22,11 @@ converter = pyewts.pyewts()
 # see https://github.com/RDFLib/rdflib/issues/806
 x = rdflib.term._toPythonMapping.pop(rdflib.XSD['gYear'])
 
-GITPATH = "../xmltoldmigration/tbrc-ttl/"
+GITPATH = "../tbrc-ttl/"
 if len(sys.argv) > 1:
     GITPATH = sys.argv[1]
 
-OUTDIR = "output/"
+OUTDIR = "BDRCLIB/"
 if len(sys.argv) > 2:
     OUTDIR = sys.argv[2]
 
@@ -105,11 +105,15 @@ def getTibNames(s, p, model, index):
     _, _, sLname = NSM.compute_qname_strict(s)
     for l in labels:
         toindex = l
-        for s2 in ["་བཞུགས་སོ", "༼", "་ཞེས་བྱ་བ", "་ཅེས་བྱ་བ"]:
-            lastparidx = toindex.rfind(s2)
-            if lastparidx != -1:
-                toindex = toindex[:lastparidx]
-        toindex = toindex.strip("།༔་")
+        # see https://github.com/buda-base/BDRC-Lib-App/issues/70
+        # and https://github.com/buda-base/BDRC-Lib-App/issues/79
+        # basically the index is used for display so we shouldn't change
+        # anything in there
+        #for s2 in ["་བཞུགས་སོ", "༼", "་ཞེས་བྱ་བ", "་ཅེས་བྱ་བ"]:
+        #    lastparidx = toindex.rfind(s2)
+        #    if lastparidx != -1:
+        #        toindex = toindex[:lastparidx]
+        #toindex = toindex.strip("།༔་")
         if toindex not in index:
             index[toindex] = []
         index[toindex].append(sLname)
@@ -280,7 +284,7 @@ def getdigits(lname):
 
 def saveData(t, lname, data):
     if NBDIGITS == 0:
-        with open('output/'+t+'/'+lname+'.json', 'w') as f:
+        with open(OUTDIR+t+'/'+lname+'.json', 'w') as f:
                 json.dump(data, f, ensure_ascii=False)
     digits = getdigits(lname)
     if digits not in FILES[t]:
@@ -293,14 +297,14 @@ def writeData():
         return
     for t in ["persons", "works", "workparts"]:
         for bucket in FILES[t]:
-            with open('output/'+t+'/'+bucket+'.json', 'w') as f:
+            with open(OUTDIR+t+'/'+bucket+'.json', 'w') as f:
                 json.dump(FILES[t][bucket], f, ensure_ascii=False)
 
 def main(mwrid=None):
     i = 0
-    os.makedirs("output/persons/", exist_ok=True)
-    os.makedirs("output/works/", exist_ok=True)
-    os.makedirs("output/workparts/", exist_ok=True)
+    os.makedirs(OUTDIR+"persons/", exist_ok=True)
+    os.makedirs(OUTDIR+"works/", exist_ok=True)
+    os.makedirs(OUTDIR+"workparts/", exist_ok=True)
     l = sorted(glob.glob(GITPATH+'/instances/**/MW*.trig'))
     for fname in VERBMODE == "-v" and tqdm(l) or l:
         likelyLname = Path(fname).stem

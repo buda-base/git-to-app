@@ -30,12 +30,11 @@ JSON="{
   ]
 }"
 
-python3 gittoapp.py ../bdrc-git-repos/
+python3 gittoapp.py ../bdrc-git-repos/ -ric -oa
 
 mkdir -p releases
 
-zip -q -r ../releases/$d.zip BDRCLIB
-cd ../
+zip -q -r releases/$d.zip BDRCLIB
 
 aws s3 --profile appdata cp releases/$d.zip s3://data.tbrc.org/app-data/$d.zip
 

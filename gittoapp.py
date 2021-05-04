@@ -30,12 +30,11 @@ OUTDIR = "BDRCLIB/"
 if len(sys.argv) > 2:
     OUTDIR = sys.argv[2]
 
-VERBMODE = ""
-if len(sys.argv) > 3:
-    if sys.argv[3] == "-v":
-        VERBMODE = "-v"
+VERBMODE = "-v" in sys.argv
+RICMODE = "-ric" in sys.argv
+OAMODE = "-oa" in sys.argv
 
-print("converting git repos in %s, output in %s, verb = %s" % (GITPATH, OUTDIR, VERBMODE))
+print("converting git repos in %s, output in %s, verb=%s, ricmode=%s, openaccessmode=%s" % (GITPATH, OUTDIR, VERBMODE, RICMODE, OAMODE))
 
 BDR = Namespace("http://purl.bdrc.io/resource/")
 BDO = Namespace("http://purl.bdrc.io/ontology/core/")
@@ -148,7 +147,7 @@ def getParts(mw, model):
 
 def inspectMW(iFilePath):
     likelyiLname = Path(iFilePath).stem
-    if "FEMC" in likelyiLname or "FPL" in likelyiLname or "EAP" in likelyiLname or "TLM" in likelyiLname or likelyiLname in UNWANTED or "CUDL" in likelyiLname:
+    if "FEMC" in likelyiLname or "FPL" in likelyiLname or "EAP" in likelyiLname or "TLM" in likelyiLname or likelyiLname in UNWANTED or "CUDL" in likelyiLname or "LULDC" in likelyiLname or "SBB" in likelyiLname:
         return
     #if "W12827" not in iFilePath:
     #    return
@@ -156,6 +155,14 @@ def inspectMW(iFilePath):
     model.parse(str(iFilePath), format="trig")
     # if status != released, pass
     if (None,  ADM.status, BDA.StatusReleased) not in model:
+        return
+    if RICMODE and (None, ADM.restrictedInChina, True) in model:
+        return
+    likelywLname = likelyiLname[1:]
+    wok = isWok(likelywLname)
+    if not wok:
+        print(wok)
+        print("w not ok: "+likelywLname)
         return
     mw = BDR[likelyiLname]
     mwinfo = {}
@@ -208,6 +215,27 @@ def inspectMW(iFilePath):
 
 CACHEDWINFO = {}
 
+def isWok(wLname):
+    if not OAMODE and not RICMODE:
+        return True
+    md5 = hashlib.md5(str.encode(wLname))
+    two = md5.hexdigest()[:2]
+    fpath = GITPATH+"iinstances/"+two+"/"+wLname+".trig"
+    authors = set()
+    model = ConjunctiveGraph()
+    try:
+        model.parse(str(fpath), format="trig")
+    except:
+        print("missing iinstance file %s" % fpath)
+        return False
+    if RICMODE and (None, ADM.restrictedInChina, True) in model:
+        print("ric")
+        return False
+    if OAMODE and (None, ADM.access, BDA.AccessOpen) not in model:
+        print("noa")
+        return False
+    return True
+
 def getWA(waLname, mwLname):
     if waLname in CACHEDWINFO:
         return CACHEDWINFO[waLname]
@@ -239,6 +267,8 @@ def getWA(waLname, mwLname):
 def inspectPerson(pFname):
     likelypLname = Path(pFname).stem
     if not likelypLname in CREATOROF or 'TLM' in pFname:
+        return
+    if RICMODE and (None, ADM.restrictedInChina, True) in model:
         return
     model = ConjunctiveGraph()
     model.parse(pFname, format="trig")
@@ -306,7 +336,7 @@ def main(mwrid=None):
     os.makedirs(OUTDIR+"works/", exist_ok=True)
     os.makedirs(OUTDIR+"workparts/", exist_ok=True)
     l = sorted(glob.glob(GITPATH+'/instances/**/MW*.trig'))
-    for fname in VERBMODE == "-v" and tqdm(l) or l:
+    for fname in VERBMODE and tqdm(l) or l:
         likelyLname = Path(fname).stem
         infol = inspectMW(fname)
         if infol is None:
@@ -320,7 +350,7 @@ def main(mwrid=None):
         #if i > 300:
         #    break
     l = sorted(glob.glob(GITPATH+'/works/**/MW*.trig'))
-    for fname in VERBMODE == "-v" and tqdm(l) or l:
+    for fname in VERBMODE and tqdm(l) or l:
         likelyLname = Path(fname).stem
         infol = inspectMW(fname)
         if infol is None:
@@ -332,7 +362,7 @@ def main(mwrid=None):
             saveData("workparts", likelyLname, partsinfo)
         i += 1
     l = sorted(glob.glob(GITPATH+'/persons/**/P*.trig'))
-    for fname in VERBMODE == "-v" and tqdm(l) or l:
+    for fname in VERBMODE and tqdm(l) or l:
         pinfo = inspectPerson(fname)
         if pinfo is None or  len(pinfo) == 0:
             continue

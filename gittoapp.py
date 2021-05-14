@@ -268,10 +268,10 @@ def inspectPerson(pFname):
     likelypLname = Path(pFname).stem
     if not likelypLname in CREATOROF or 'TLM' in pFname:
         return
-    if RICMODE and (None, ADM.restrictedInChina, True) in model:
-        return
     model = ConjunctiveGraph()
     model.parse(pFname, format="trig")
+    if RICMODE and (None, ADM.restrictedInChina, True) in model:
+        return
     names = getTibNames(BDR[likelypLname], BDR.personName, model, INDEXES["persons"])
     bdate = ""
     ddate = ""

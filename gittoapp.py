@@ -397,4 +397,28 @@ def main(mwrid=None):
             fp.flush()
             fp.close()
 
+def testPerson(prid):
+    CREATOROF[prid] = True
+    digits = getdigits(prid)
+    fname = GITPATH+"/persons/"+digits+"/"+prid+".trig"
+    print(fname)
+    pinfo = inspectPerson(fname)
+    print("info:")
+    print(pinfo)
+    for idxname, idx in INDEXES.items():
+        keyCnt = 0
+        s = ""
+        for name, values in idx.items():
+            if keyCnt == 0:
+                s += '{'
+            else:
+                s += ','
+            s += json.dumps(name, ensure_ascii=False)+':'+json.dumps(values, ensure_ascii=False)
+            keyCnt += 1
+        if keyCnt != 0:
+            s += '}'
+        print(idxname)
+        print(s)
+
 main()
+#testPerson("P3379")

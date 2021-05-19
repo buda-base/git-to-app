@@ -136,7 +136,7 @@ def getParts(mw, model):
         if wpt == BDR.PartTypeTableOfContent or wpt == BDR.PartTypeChapter:
             continue
         idx = INDEXES["workparts"] if wpt == BDR.PartTypeText else None
-        titles = getTibNames(wp, BDR.hasTitle, model, idx)
+        titles = getTibNames(wp, BDO.hasTitle, model, idx)
         _, _, wpLname = NSM.compute_qname_strict(wp)
         node = {"id": wpLname, "t": titles}
         res.append(node)
@@ -272,7 +272,7 @@ def inspectPerson(pFname):
     model.parse(pFname, format="trig")
     if RICMODE and (None, ADM.restrictedInChina, True) in model:
         return
-    names = getTibNames(BDR[likelypLname], BDR.personName, model, INDEXES["persons"])
+    names = getTibNames(BDR[likelypLname], BDO.personName, model, INDEXES["persons"])
     bdate = ""
     ddate = ""
     for evt, _, _ in model.triples( (None, RDF.type, BDO.PersonBirth) ):

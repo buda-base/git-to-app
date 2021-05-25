@@ -128,6 +128,7 @@ def getTibNames(s, p, model, index):
 # ]
 def getParts(mw, model):
     res = []
+    idtopartnum = {}
     for _, _, wp in model.triples( (mw, BDO.hasPart, None) ):
         wpt = None
         _, _, wpLname = NSM.compute_qname_strict(wp)
@@ -135,6 +136,8 @@ def getParts(mw, model):
             wpt = wptO
         if wpt == BDR.PartTypeTableOfContent or wpt == BDR.PartTypeChapter:
             continue
+        for _, _, wptO in model.triples( (wp, BDO.partIndex, None) ):
+            idtopartnum[wpLname] = int(wptO)
         idx = INDEXES["workparts"] if wpt == BDR.PartTypeText else None
         titles = getTibNames(wp, BDO.hasTitle, model, idx)
         _, _, wpLname = NSM.compute_qname_strict(wp)
@@ -143,6 +146,7 @@ def getParts(mw, model):
         subParts = getParts(wp, model)
         if subParts is not None and len(subParts) > 0:
             node["n"] = subParts
+    res = sorted(res, key=lambda n: idtopartnum[n["id"]])
     return res
 
 def inspectMW(iFilePath):
@@ -420,5 +424,28 @@ def testPerson(prid):
         print(idxname)
         print(s)
 
+def testMW(prid):
+    digits = getdigits(prid)
+    fname = GITPATH+"/instances/"+digits+"/"+prid+".trig"
+    print(fname)
+    pinfo = inspectMW(fname)
+    print("info:")
+    print(pinfo)
+    for idxname, idx in INDEXES.items():
+        keyCnt = 0
+        s = ""
+        for name, values in idx.items():
+            if keyCnt == 0:
+                s += '{'
+            else:
+                s += ','
+            s += json.dumps(name, ensure_ascii=False)+':'+json.dumps(values, ensure_ascii=False)
+            keyCnt += 1
+        if keyCnt != 0:
+            s += '}'
+        print(idxname)
+        print(s)
+
 main()
 #testPerson("P3379")
+#testMW("MW22084")

@@ -142,11 +142,14 @@ def getParts(mw, model):
         titles = getTibNames(wp, BDO.hasTitle, model, idx)
         _, _, wpLname = NSM.compute_qname_strict(wp)
         node = {"id": wpLname, "t": titles}
-        res.append(node)
         subParts = getParts(wp, model)
         if subParts is not None and len(subParts) > 0:
             node["n"] = subParts
-    res = sorted(res, key=lambda n: idtopartnum[n["id"]])
+        # if no subparts and no label, continue
+        elif len(titles) < 1:
+            continue 
+        res.append(node)
+    res = sorted(res, key=lambda n: idtopartnum[n["id"]] if n["id"] in idtopartnum else 9999 )
     return res
 
 def inspectMW(iFilePath):
@@ -448,4 +451,4 @@ def testMW(prid):
 
 main()
 #testPerson("P3379")
-#testMW("MW22084")
+#testMW("MW4CZ7445")

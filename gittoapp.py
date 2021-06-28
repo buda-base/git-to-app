@@ -54,7 +54,8 @@ NSM.bind("rdfs", RDFS)
 INDEXES = {
     "persons": {},
     "works": {},
-    "workparts": {}
+    "workparts": {},
+    "rititles": {}
 }
 
 PTLNAMETOAPP = {
@@ -74,7 +75,7 @@ with open('unwantedInstances.txt', newline='') as csvfile:
     for row in reader:
         UNWANTED[row[0]] = True
 
-def getTibNames(s, p, model, index):
+def getTibNames(s, p, model, index, rititle = None):
     labels = []
     prefLabel = ""
     for t, _, tl in model.triples( (s, SKOS.prefLabel, None) ):
@@ -102,6 +103,9 @@ def getTibNames(s, p, model, index):
     if index is None:
         return labels
     _, _, sLname = NSM.compute_qname_strict(s)
+    indexValue = sLname
+    if rititle is not None:
+        indexValues += '|'+rititle
     for l in labels:
         toindex = l
         # see https://github.com/buda-base/BDRC-Lib-App/issues/70
@@ -115,7 +119,7 @@ def getTibNames(s, p, model, index):
         #toindex = toindex.strip("།༔་")
         if toindex not in index:
             index[toindex] = []
-        index[toindex].append(sLname)
+        index[toindex].append(indexValue)
     return labels
 
 # n : [
@@ -126,7 +130,7 @@ def getTibNames(s, p, model, index):
 #   },
 #   ...
 # ]
-def getParts(mw, model):
+def getParts(mw, model, rititle):
     res = []
     idtopartnum = {}
     for _, _, wp in model.triples( (mw, BDO.hasPart, None) ):
@@ -139,10 +143,10 @@ def getParts(mw, model):
         for _, _, wptO in model.triples( (wp, BDO.partIndex, None) ):
             idtopartnum[wpLname] = int(wptO)
         idx = INDEXES["workparts"] if wpt == BDR.PartTypeText else None
-        titles = getTibNames(wp, BDO.hasTitle, model, idx)
+        titles = getTibNames(wp, BDO.hasTitle, model, idx, rititle)
         _, _, wpLname = NSM.compute_qname_strict(wp)
         node = {"id": wpLname, "t": titles}
-        subParts = getParts(wp, model)
+        subParts = getParts(wp, model, rititle)
         if subParts is not None and len(subParts) > 0:
             node["n"] = subParts
         # if no subparts and no label, continue
@@ -213,9 +217,12 @@ def inspectMW(iFilePath):
         wainfo = getWA(waLname, likelyiLname)
         if wainfo and len(wainfo) != 0:
             mwinfo["creator"] = list(wainfo)
-    parts = getParts(mw, model)
+    parts = getParts(mw, model, titles[0] if len(titles) else None)
     if len(parts) != 0:
         mwinfo["hasParts"] = True
+        # write the root instance index:
+        if len(titles) != 0:
+            INDEXES["rititles"] = titles[0]
     else:
         parts = None
     return [mwinfo, parts]

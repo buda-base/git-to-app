@@ -104,8 +104,8 @@ def getTibNames(s, p, model, index, rititle = None):
         return labels
     _, _, sLname = NSM.compute_qname_strict(s)
     indexValue = sLname
-    if rititle is not None:
-        indexValues += '|'+rititle
+    #if rititle is not None:
+    #    indexValue += '|'+rititle
     for l in labels:
         toindex = l
         # see https://github.com/buda-base/BDRC-Lib-App/issues/70
@@ -386,6 +386,8 @@ def main(mwrid=None):
         #break
     writeData()
     for idxname, idx in INDEXES.items():
+        if idxname == "rititles":
+            continue
         fileCnt = 0
         #towrite[name] = values
         fpath = OUTDIR+idxname+"-"+str(fileCnt)+".json"
@@ -410,6 +412,8 @@ def main(mwrid=None):
             fp.write('}')
             fp.flush()
             fp.close()
+    with open(OUTDIR+"rititles.json", 'w') as outfile:
+        json.dump(INDEXES["rititles"], ,ensure_ascii=True)
 
 def testPerson(prid):
     CREATOROF[prid] = True
@@ -442,6 +446,7 @@ def testMW(prid):
     print("info:")
     print(pinfo)
     for idxname, idx in INDEXES.items():
+        if idxname == ""
         keyCnt = 0
         s = ""
         for name, values in idx.items():

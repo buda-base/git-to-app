@@ -13,7 +13,7 @@ JSON="{
   \"viewerUrlPrefix\":\"https://library.bdrc.io/scripts/embed-iframe.html\",
   \"releaseSerialNumber\": XXX,
   \"releaseDate\":\"$d2\",
-  \"releaseZipUrl":"http://staticfiles.bdrc.io/BDRCLibApp/1.2/$d.zip\",
+  \"releaseZipUrl\":\"http://staticfiles.bdrc.io/BDRCLibApp/1.2/$d.zip\",
   \"releaseDescription\":[
     {
       \"value\":\"$den\",

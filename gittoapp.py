@@ -222,7 +222,7 @@ def inspectMW(iFilePath):
         mwinfo["hasParts"] = True
         # write the root instance index:
         if len(titles) != 0:
-            INDEXES["rititles"] = titles[0]
+            INDEXES["rititles"][likelyiLname] = titles[0]
     else:
         parts = None
     return [mwinfo, parts]
@@ -413,7 +413,7 @@ def main(mwrid=None):
             fp.flush()
             fp.close()
     with open(OUTDIR+"rititles.json", 'w') as outfile:
-        json.dump(INDEXES["rititles"], ,ensure_ascii=True)
+        json.dump(INDEXES["rititles"], outfile, ensure_ascii=False)
 
 def testPerson(prid):
     CREATOROF[prid] = True
@@ -446,7 +446,6 @@ def testMW(prid):
     print("info:")
     print(pinfo)
     for idxname, idx in INDEXES.items():
-        if idxname == ""
         keyCnt = 0
         s = ""
         for name, values in idx.items():

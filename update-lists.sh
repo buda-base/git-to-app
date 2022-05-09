@@ -1,0 +1,2 @@
+curl 'https://ldspdi.bdrc.io/query/table/AO_mustbeonglobalapp?format=csv&pageSize=40000' | tail -n +2 | sed -re 's/^"bdr:(.*)"$/\1/g' | sort > wl-global.txt
+curl 'https://ldspdi.bdrc.io/query/table/AO_mustbeonmirror?format=csv&pageSize=40000' | tail -n +2 | sed -re 's/^"bdr:(.*)"$/\1/g' | sort > wl-cn.txt

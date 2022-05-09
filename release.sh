@@ -30,8 +30,9 @@ JSON="{
   ]
 }"
 
+rm -rf BDRCLIB
 mkdir -p BDRCLIB
-python3 gittoapp.py ../bdrc-git-repos/ BDRCLIB/ $1
+python3 gittoapp.py ../bdrc-git-repos/ BDRCLIB/
 
 mkdir -p releases
 
@@ -41,6 +42,3 @@ aws s3 --profile appdata cp releases/$d.zip s3://data.tbrc.org/app-data/$d.zip
 
 echo "posible json saved as $d.json"
 echo $JSON > $d.json
-
-echo "complete and then upload to s3:"
-echo "aws s3 --profile appdata cp $d.json s3://data.tbrc.org/app-data/$d.json"

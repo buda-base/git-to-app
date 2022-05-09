@@ -30,7 +30,8 @@ JSON="{
   ]
 }"
 
-python3 gittoapp.py ../bdrc-git-repos/ -ric -oa
+mkdir -p BDRCLIB
+python3 gittoapp.py ../bdrc-git-repos/ BDRCLIB/ $1
 
 mkdir -p releases
 

@@ -32,9 +32,8 @@ if len(sys.argv) > 2:
 
 VERBMODE = "-v" in sys.argv
 RICMODE = "-ric" in sys.argv
-OAMODE = "-oa" in sys.argv
 
-print("converting git repos in %s, output in %s, verb=%s, ricmode=%s, openaccessmode=%s" % (GITPATH, OUTDIR, VERBMODE, RICMODE, OAMODE))
+print("converting git repos in %s, output in %s, verb=%s, ricmode=%s" % (GITPATH, OUTDIR, VERBMODE, RICMODE))
 
 BDR = Namespace("http://purl.bdrc.io/resource/")
 BDO = Namespace("http://purl.bdrc.io/ontology/core/")
@@ -67,13 +66,13 @@ PTLNAMETOAPP = {
 
 # TODO: only add author persons
 
-UNWANTED = {}
 CREATOROF = {}
+WHITELIST = {}
 
-with open('unwantedInstances.txt', newline='') as csvfile:
+with open('wl-cn.txt' if RICMODE else 'wl-global.txt', newline='') as csvfile:
     reader = csv.reader(csvfile, delimiter=',')
     for row in reader:
-        UNWANTED[row[0]] = True
+        WHITELIST[row[0]] = True
 
 def getTibNames(s, p, model, index, rititle = None):
     labels = []
@@ -158,23 +157,13 @@ def getParts(mw, model, rititle):
 
 def inspectMW(iFilePath):
     likelyiLname = Path(iFilePath).stem
-    if "FEMC" in likelyiLname or "FPL" in likelyiLname or "EAP" in likelyiLname or "TLM" in likelyiLname or likelyiLname in UNWANTED or "CUDL" in likelyiLname or "LULDC" in likelyiLname or "SBB" in likelyiLname:
+    likelywLname = likelyiLname[1:]
+    if likelywLname not in WHITELIST:
         return
     #if "W12827" not in iFilePath:
     #    return
     model = ConjunctiveGraph()
     model.parse(str(iFilePath), format="trig")
-    # if status != released, pass
-    if (None,  ADM.status, BDA.StatusReleased) not in model:
-        return
-    if RICMODE and (None, ADM.restrictedInChina, True) in model:
-        return
-    likelywLname = likelyiLname[1:]
-    wok = isWok(likelywLname)
-    if not wok:
-        print(wok)
-        print("w not ok: "+likelywLname)
-        return
     mw = BDR[likelyiLname]
     mwinfo = {}
     wainfo = None
@@ -228,27 +217,6 @@ def inspectMW(iFilePath):
     return [mwinfo, parts]
 
 CACHEDWINFO = {}
-
-def isWok(wLname):
-    if not OAMODE and not RICMODE:
-        return True
-    md5 = hashlib.md5(str.encode(wLname))
-    two = md5.hexdigest()[:2]
-    fpath = GITPATH+"iinstances/"+two+"/"+wLname+".trig"
-    authors = set()
-    model = ConjunctiveGraph()
-    try:
-        model.parse(str(fpath), format="trig")
-    except:
-        print("missing iinstance file %s" % fpath)
-        return False
-    if RICMODE and (None, ADM.restrictedInChina, True) in model:
-        print("ric")
-        return False
-    if OAMODE and (None, ADM.access, BDA.AccessOpen) not in model:
-        print("noa")
-        return False
-    return True
 
 def getWA(waLname, mwLname):
     if waLname in CACHEDWINFO:

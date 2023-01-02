@@ -147,7 +147,11 @@ def getParts(mw_lname, rititle, model = None):
         md5 = hashlib.md5(str.encode(olname))
         two = md5.hexdigest()[:2]
         fpath = GITPATH+"outlines"+GITREPOSUFFIX+"/"+two+"/"+olname+".trig"
-        model.parse(str(fpath), format="trig")
+        try:
+            model.parse(str(fpath), format="trig")
+        except:
+            print("could not read "+fpath)
+            return []
     mw = BDR[mw_lname]
     res = []
     idtopartnum = {}

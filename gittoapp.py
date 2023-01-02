@@ -22,6 +22,8 @@ converter = pyewts.pyewts()
 # see https://github.com/RDFLib/rdflib/issues/806
 x = rdflib.term._toPythonMapping.pop(rdflib.XSD['gYear'])
 
+GITREPOSUFFIX = "-20220922"
+
 GITPATH = "../tbrc-ttl/"
 if len(sys.argv) > 1:
     GITPATH = sys.argv[1]
@@ -143,7 +145,7 @@ def getParts(mw_lname, rititle):
     model = ConjunctiveGraph()
     md5 = hashlib.md5(str.encode(olname))
     two = md5.hexdigest()[:2]
-    fpath = GITPATH+"outlines/"+two+"/"+olname+".trig"
+    fpath = GITPATH+"outlines"+GITREPOSUFFIX+"/"+two+"/"+olname+".trig"
     model.parse(str(fpath), format="trig")
     mw = BDR[mw_lname]
     res = []
@@ -252,7 +254,7 @@ def getWA(waLname, mwLname):
         return CACHEDWINFO[waLname]
     md5 = hashlib.md5(str.encode(waLname))
     two = md5.hexdigest()[:2]
-    fpath = GITPATH+"works/"+two+"/"+waLname+".trig"
+    fpath = GITPATH+"works"+GITREPOSUFFIX+"/"+two+"/"+waLname+".trig"
     authors = set()
     model = ConjunctiveGraph()
     try:
@@ -346,7 +348,7 @@ def main(mwrid=None):
     os.makedirs(OUTDIR+"persons/", exist_ok=True)
     os.makedirs(OUTDIR+"works/", exist_ok=True)
     os.makedirs(OUTDIR+"workparts/", exist_ok=True)
-    l = sorted(glob.glob(GITPATH+'/instances/**/MW*.trig'))
+    l = sorted(glob.glob(GITPATH+'/instances'+GITREPOSUFFIX+'/**/MW*.trig'))
     for fname in VERBMODE and tqdm(l) or l:
         likelyLname = Path(fname).stem
         infol = inspectMW(fname)
@@ -360,7 +362,7 @@ def main(mwrid=None):
         i += 1
         #if i > 300:
         #    break
-    l = sorted(glob.glob(GITPATH+'/works/**/MW*.trig'))
+    l = sorted(glob.glob(GITPATH+'/works'+GITREPOSUFFIX+'/**/MW*.trig'))
     for fname in VERBMODE and tqdm(l) or l:
         likelyLname = Path(fname).stem
         infol = inspectMW(fname)
@@ -372,7 +374,7 @@ def main(mwrid=None):
         if partsinfo:
             saveData("workparts", likelyLname, partsinfo)
         i += 1
-    l = sorted(glob.glob(GITPATH+'/persons/**/P*.trig'))
+    l = sorted(glob.glob(GITPATH+'/persons'+GITREPOSUFFIX+'/**/P*.trig'))
     for fname in VERBMODE and tqdm(l) or l:
         pinfo = inspectPerson(fname)
         if pinfo is None or  len(pinfo) == 0:
@@ -415,7 +417,7 @@ def main(mwrid=None):
 def testPerson(prid):
     CREATOROF[prid] = True
     digits = getdigits(prid)
-    fname = GITPATH+"/persons/"+digits+"/"+prid+".trig"
+    fname = GITPATH+"/persons"+GITREPOSUFFIX+"/"+digits+"/"+prid+".trig"
     print(fname)
     pinfo = inspectPerson(fname)
     print("info:")
@@ -437,7 +439,7 @@ def testPerson(prid):
 
 def testMW(prid):
     digits = getdigits(prid)
-    fname = GITPATH+"/instances/"+digits+"/"+prid+".trig"
+    fname = GITPATH+"/instances"+GITREPOSUFFIX+"/"+digits+"/"+prid+".trig"
     print(fname)
     pinfo = inspectMW(fname)
     print("info:")

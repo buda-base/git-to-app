@@ -138,15 +138,16 @@ def getTibNames(s, p, model, index, rititle = None):
 #   ...
 # ]
 
-def getParts(mw_lname, rititle):
-    if mw_lname not in MWTOOUTLINE:
-        return []
-    olname = MWTOOUTLINE[mw_lname]
-    model = ConjunctiveGraph()
-    md5 = hashlib.md5(str.encode(olname))
-    two = md5.hexdigest()[:2]
-    fpath = GITPATH+"outlines"+GITREPOSUFFIX+"/"+two+"/"+olname+".trig"
-    model.parse(str(fpath), format="trig")
+def getParts(mw_lname, rititle, model = None):
+    if model is None:
+        if mw_lname not in MWTOOUTLINE:
+            return []
+        olname = MWTOOUTLINE[mw_lname]
+        model = ConjunctiveGraph()
+        md5 = hashlib.md5(str.encode(olname))
+        two = md5.hexdigest()[:2]
+        fpath = GITPATH+"outlines"+GITREPOSUFFIX+"/"+two+"/"+olname+".trig"
+        model.parse(str(fpath), format="trig")
     mw = BDR[mw_lname]
     res = []
     idtopartnum = {}
@@ -163,7 +164,7 @@ def getParts(mw_lname, rititle):
         titles = getTibNames(wp, BDO.hasTitle, model, idx, rititle)
         _, _, wpLname = NSM.compute_qname_strict(wp)
         node = {"id": wpLname, "t": titles}
-        subParts = getParts(wp, model, rititle)
+        subParts = getParts(wpLname, rititle, model)
         if subParts is not None and len(subParts) > 0:
             node["n"] = subParts
         # if no subparts and no label, continue

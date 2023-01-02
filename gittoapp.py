@@ -69,10 +69,10 @@ PTLNAMETOAPP = {
 CREATOROF = {}
 WHITELIST = {}
 
-with open('wl-cn.txt' if RICMODE else 'wl-global.txt', newline='') as csvfile:
+with open('wl-cn.txt' if RICMODE else 'wl-global.csv', newline='') as csvfile:
     reader = csv.reader(csvfile, delimiter=',')
     for row in reader:
-        WHITELIST[row[0]] = True
+        WHITELIST[row[0]] = row
 
 def getTibNames(s, p, model, index, rititle = None):
     labels = []
@@ -160,12 +160,25 @@ def inspectMW(iFilePath):
     likelywLname = likelyiLname[1:]
     if likelywLname not in WHITELIST:
         return
+    winfo = WHITELIST[likelywLname]
+    if len(winfo) > 1:
+        access = "o"
+        if likelywLname.startswith("W0LULDC"):
+            access = "ld"
+        elif likelywLname.startswith("W0SBB"):
+            access = "sbb"
+        elif likelywLname.startswith("WEAP"):
+            access = "bl"
+        elif winfo[1] == "AccessFairUse" and winfo[2] == "true":
+            access = "ia"
+        elif winfo[1] != "AccessOpen":
+            access = "na"
     #if "W12827" not in iFilePath:
     #    return
     model = ConjunctiveGraph()
     model.parse(str(iFilePath), format="trig")
     mw = BDR[likelyiLname]
-    mwinfo = {}
+    mwinfo = { "av": access }
     wainfo = None
     for _, _, wa in model.triples( (mw, BDO.instanceOf, None) ):
         _, _, waLname = NSM.compute_qname_strict(wa)

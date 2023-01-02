@@ -68,11 +68,17 @@ PTLNAMETOAPP = {
 
 CREATOROF = {}
 WHITELIST = {}
+MWTOOUTLINE = {}
 
 with open('wl-cn.txt' if RICMODE else 'wl-global.csv', newline='') as csvfile:
     reader = csv.reader(csvfile, delimiter=',')
     for row in reader:
         WHITELIST[row[0]] = row
+
+with open("wl-outlines.csv") as csvfile:
+    reader = csv.reader(csvfile, delimiter=',')
+    for row in reader:
+        MWTOOUTLINE[row[1]] = row[0]
 
 def getTibNames(s, p, model, index, rititle = None):
     labels = []
@@ -129,7 +135,17 @@ def getTibNames(s, p, model, index, rititle = None):
 #   },
 #   ...
 # ]
-def getParts(mw, model, rititle):
+
+def getParts(mw_lname, rititle):
+    if mw_lname not in MWTOOUTLINE:
+        return []
+    olname = MWTOOUTLINE[mw_lname]
+    model = ConjunctiveGraph()
+    md5 = hashlib.md5(str.encode(olname))
+    two = md5.hexdigest()[:2]
+    fpath = GITPATH+"outlines/"+two+"/"+olname+".trig"
+    model.parse(str(fpath), format="trig")
+    mw = BDR[mw_lname]
     res = []
     idtopartnum = {}
     for _, _, wp in model.triples( (mw, BDO.hasPart, None) ):
@@ -219,7 +235,7 @@ def inspectMW(iFilePath):
         wainfo = getWA(waLname, likelyiLname)
         if wainfo and len(wainfo) != 0:
             mwinfo["creator"] = list(wainfo)
-    parts = getParts(mw, model, titles[0] if len(titles) else None)
+    parts = getParts(likelyiLname, titles[0] if len(titles) else None)
     if len(parts) != 0:
         mwinfo["hasParts"] = True
         # write the root instance index:

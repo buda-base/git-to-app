@@ -1,2 +1,3 @@
 curl 'https://ldspdi.bdrc.io/query/table/AO_mustbeonglobalapp?format=csv&pageSize=50000' | tail -n +2 | sed -re 's/"bd[ra]:([^"]*)"/\1/g' | sort > wl-global.csv
 curl 'https://ldspdi.bdrc.io/query/table/AO_mustbeonmirror?format=csv&pageSize=40000' | tail -n +2 | sed -re 's/^"bdr:(.*)"$/\1/g' | sort > wl-cn.txt
+curl 'https://ldspdi.bdrc.io/query/table/outline_list?format=csv&pageSize=10000' | tail -n +2 | sed -re 's/"bd[ra]:([^"]*)"/\1/g' | sort > wl-outlines.csv
